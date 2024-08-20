@@ -117,7 +117,7 @@ def predict_phishing(url, html):
     predicted_category = label_encoder.inverse_transform(new_predictions)[0]
     predicted_probability = f"{new_predictions_prob[0][0]:.4f}"
     
-    return predicted_category.capitalize(), predicted_probability
+    return [predicted_category.capitalize(), predicted_probability]
 
 
 
@@ -140,10 +140,8 @@ def predict():
     print(url)
     
     predict_dict = predict_phishing(url, html)
-    predict_dict["recentlyRegisteredURL"] = False
+    predict_dict.append( False )
     # predict_dict["recentlyRegisteredURL"] = date_diff_too_short(url, 7)
-    
-    
     
     return jsonify(predict_dict)
 
