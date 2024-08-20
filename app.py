@@ -26,30 +26,26 @@ nltk.download('wordnet')
 def date_diff_too_short(domain, days):
     whois_key = os.getenv('WHOISKEY')
     # 요청을 보내고 응답을 받습니다
-    query = "http://apis.data.go.kr/B551505/whois/domain_name?serviceKey=" + whois_key + "&query="+ domain + "&answer=xml";
-    request = urllib.request.urlopen(query).read().decode("utf-8")
+    try :
+        query = "http://apis.data.go.kr/B551505/whois/domain_name?serviceKey=" + whois_key + "&query="+ domain + "&answer=xml"
+        request = urllib.request.urlopen(query).read().decode("utf-8")
+        print(query)
+        root = ET.fromstring(request)
+        
+        for date in root.iter('regDate'):
+            date_text = date.text
+            break
 
-    # XML 파일을 파싱합니다.
-    root = ET.fromstring(request)
+        today = datetime.today()
+        regDate = datetime.strptime(date_text, "%Y. %m. %d.")
+        difference = today - regDate  
     
-    # <regDate> 태그를 찾아 날짜 텍스트를 date_text에 저장합니다.
-    for date in root.iter('regDate'):
-        date_text = date.text
-        break
-
-    # 오늘 날짜를 가져옵니다.
-    today = datetime.today()
     
-    # 날짜 텍스트를 날짜 변수로 바꿉니다.
-    regDate = datetime.strptime(date_text, "%Y. %m. %d.")
-    
-    # 날짜 차이를 계산합니다
-    difference = today - regDate  
-    
-    # 등록일과 오늘 날짜가 days 일도 차이가 안 나면 True, 아니면 False 반환
-    if difference.days < days :
-        return True
-    else:
+        if difference.days < days :
+            return True
+        else:
+            return False
+    except Exception as e :
         return False
 
 # Load Stopwords and Initialize Lemmatizer
@@ -100,6 +96,8 @@ with open('html_tokenizer.pkl', 'rb') as file:
 with open('label_encoder.pkl', 'rb') as file:
     label_encoder = pickle.load(file)
 
+# import auto_report
+
 # Define the prediction function
 def predict_phishing(url, html):
     cleaned_url = preprocess_url(url)
@@ -135,13 +133,17 @@ cors = CORS(app, resources={r"/*": {"origins": "*"}})
 @app.route('/predict', methods=["POST"])
 def predict():
     data = request.get_json()
-    url = data["url"]
-    html = data["html"]
+    url : str = data["url"]
+    html = data["html"] 
     print(url)
     
     predict_dict = predict_phishing(url, html)
+
     predict_dict.append( False )
-    # predict_dict["recentlyRegisteredURL"] = date_diff_too_short(url, 7)
+    # predict_dict.append( date_diff_too_short(url, 7) )
+    
+    # if predict_dict[1] > 0.99 :
+    #     auto_report(url)
     
     return jsonify(predict_dict)
 
